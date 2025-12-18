@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -71,25 +71,37 @@ const ProfileScreen = () => {
 
       {/* Actions */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('EditProfile')}
+        >
           <Ionicons name="create-outline" size={24} color="#007AFF" />
           <Text style={styles.actionText}>Edit Profile</Text>
           <Ionicons name="chevron-forward" size={24} color="#ccc" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('MyListings')}
+        >
           <Ionicons name="list-outline" size={24} color="#007AFF" />
           <Text style={styles.actionText}>My Listings</Text>
           <Ionicons name="chevron-forward" size={24} color="#ccc" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('MyBids')}
+        >
           <Ionicons name="hammer-outline" size={24} color="#007AFF" />
           <Text style={styles.actionText}>My Bids</Text>
           <Ionicons name="chevron-forward" size={24} color="#ccc" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Settings')}
+        >
           <Ionicons name="settings-outline" size={24} color="#007AFF" />
           <Text style={styles.actionText}>Settings</Text>
           <Ionicons name="chevron-forward" size={24} color="#ccc" />

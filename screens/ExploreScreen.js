@@ -33,9 +33,6 @@ export default function ExploreScreen({ navigation }) {
             onChangeText={setSearchQuery}
           />
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterIcon}>⚙️</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Listings */}
@@ -77,14 +74,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   searchContainer: {
-    flexDirection: 'row',
     padding: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   searchBar: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
@@ -99,18 +94,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-  },
-  filterButton: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    marginLeft: 10,
-  },
-  filterIcon: {
-    fontSize: 20,
   },
   listingsContainer: {
     flex: 1,

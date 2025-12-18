@@ -116,7 +116,7 @@ export default function AddListingScreen({ navigation }) {
 
         {/* Price */}
         <View style={styles.section}>
-          <Text style={styles.label}>Price per Night</Text>
+          <Text style={styles.label}>Monthly Rent</Text>
           <View style={styles.inputWithIcon}>
             <Text style={styles.inputIcon}>💰</Text>
             <TextInput
@@ -126,7 +126,7 @@ export default function AddListingScreen({ navigation }) {
               onChangeText={setPrice}
               keyboardType="numeric"
             />
-            <Text style={styles.inputSuffix}>USD</Text>
+            <Text style={styles.inputSuffix}>USD/month</Text>
           </View>
         </View>
 

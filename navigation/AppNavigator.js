@@ -16,6 +16,10 @@ import ExploreScreen from '../screens/ExploreScreen';
 import MapScreen from '../screens/MapScreen';
 import AddListingScreen from '../screens/AddListingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import MyListingsScreen from '../screens/MyListingsScreen';
+import MyBidsScreen from '../screens/MyBidsScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -30,6 +34,39 @@ const AuthStack = () => {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
+  );
+};
+
+// Profile Stack Navigator
+const ProfileStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="ProfileMain" 
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen}
+        options={{ title: 'Edit Profile' }}
+      />
+      <Stack.Screen 
+        name="MyListings" 
+        component={MyListingsScreen}
+        options={{ title: 'My Listings' }}
+      />
+      <Stack.Screen 
+        name="MyBids" 
+        component={MyBidsScreen}
+        options={{ title: 'My Bids' }}
+      />
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{ title: 'Settings' }}
+      />
     </Stack.Navigator>
   );
 };
@@ -76,8 +113,8 @@ const MainTabs = () => {
       />
       <Tab.Screen 
         name="Profile" 
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
+        component={ProfileStack}
+        options={{ headerShown: false }}
       />
     </Tab.Navigator>
   );
