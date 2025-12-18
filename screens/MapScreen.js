@@ -6,20 +6,33 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../utils/api';
 
-export default function MapScreen() {
+export default function MapScreen({ navigation }) {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mapRegion, setMapRegion] = useState(null);
   const [listings, setListings] = useState([]);
+  const [selectedListing, setSelectedListing] = useState(null);
 
   useEffect(() => {
     requestLocationPermission();
+    fetchListings();
   }, []);
+
+  const fetchListings = async () => {
+    try {
+      const data = await api.getListings();
+      setListings(data);
+    } catch (error) {
+      console.error('Error fetching listings for map:', error);
+    }
+  };
 
   const requestLocationPermission = async () => {
     try {
@@ -118,29 +131,55 @@ export default function MapScreen() {
         showsCompass={true}
         showsScale={true}
       >
-        {/* User's current location marker */}
-        {location && (
-          <Marker
-            coordinate={location}
-            title="You are here"
-            pinColor="#007AFF"
-          />
-        )}
-
-        {/* Mock listings markers - will be replaced with real data */}
+        {/* Listings markers */}
         {listings.map((listing) => (
           <Marker
-            key={listing.id}
+            key={listing._id}
             coordinate={{
-              latitude: listing.latitude,
-              longitude: listing.longitude,
+              latitude: listing.location.coordinates.latitude,
+              longitude: listing.location.coordinates.longitude,
             }}
-            title={listing.title}
-            description={`$${listing.price}/month`}
+            onPress={() => setSelectedListing(listing)}
           >
             <View style={styles.customMarker}>
-              <Text style={styles.markerPrice}>${listing.price}</Text>
+              <Text style={styles.markerPrice}>${listing.monthlyRent}</Text>
             </View>
+            <Callout
+              tooltip
+              onPress={() => {
+                // TODO: Navigate to listing details
+                console.log('View listing:', listing._id);
+              }}
+            >
+              <View style={styles.calloutContainer}>
+                {listing.images && listing.images.length > 0 ? (
+                  <Image
+                    source={{ uri: listing.images[0] }}
+                    style={styles.calloutImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.calloutImage, styles.calloutImagePlaceholder]}>
+                    <Text style={styles.calloutPlaceholderIcon}>🏠</Text>
+                  </View>
+                )}
+                <View style={styles.calloutContent}>
+                  <Text style={styles.calloutTitle} numberOfLines={1}>
+                    {listing.title}
+                  </Text>
+                  <Text style={styles.calloutLocation} numberOfLines={1}>
+                    📍 {listing.location.address}
+                  </Text>
+                  <View style={styles.calloutFooter}>
+                    <Text style={styles.calloutPrice}>${listing.monthlyRent}/mo</Text>
+                    <View style={styles.calloutBadge}>
+                      <Text style={styles.calloutBadgeText}>{listing.propertyType}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.calloutTap}>Tap to view details</Text>
+                </View>
+              </View>
+            </Callout>
           </Marker>
         ))}
       </MapView>
@@ -185,16 +224,19 @@ export default function MapScreen() {
       </View>
 
       {/* Info Card */}
-      {listings.length === 0 && (
-        <View style={styles.infoCard}>
+      <View style={styles.infoCard}>
+        <View style={styles.infoCardHeader}>
+          <Ionicons name="home" size={20} color="#007AFF" />
           <Text style={styles.infoText}>
-            📍 Showing your current location
-          </Text>
-          <Text style={styles.infoSubtext}>
-            Listings will appear here when available
+            {listings.length} {listings.length === 1 ? 'Property' : 'Properties'} Available
           </Text>
         </View>
-      )}
+        {listings.length === 0 && (
+          <Text style={styles.infoSubtext}>
+            No listings to show on the map yet
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -299,14 +341,87 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  infoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   infoText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginLeft: 8,
   },
   infoSubtext: {
     fontSize: 14,
     color: '#666',
+    marginLeft: 28,
+  },
+  calloutContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: 280,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  calloutImage: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#f0f0f0',
+  },
+  calloutImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calloutPlaceholderIcon: {
+    fontSize: 48,
+    opacity: 0.3,
+  },
+  calloutContent: {
+    padding: 12,
+  },
+  calloutTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 6,
+  },
+  calloutLocation: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+  },
+  calloutFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  calloutPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  calloutBadge: {
+    backgroundColor: '#f0f8ff',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  calloutBadgeText: {
+    fontSize: 11,
+    color: '#007AFF',
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  calloutTap: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

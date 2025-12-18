@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,58 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import { api } from '../utils/api';
 
 export default function AddListingScreen({ navigation }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [location, setLocation] = useState('');
+  const [address, setAddress] = useState('');
   const [propertyType, setPropertyType] = useState('apartment');
   const [images, setImages] = useState([]);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Location state
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [showMap, setShowMap] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const mapRef = React.useRef(null);
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to use the map');
+        setLocationLoading(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const coords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setCurrentLocation(coords);
+      setSelectedLocation(coords); // Set initial marker to current location
+      setLocationLoading(false);
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setLocationLoading(false);
+    }
+  };
 
   const propertyTypes = [
     { id: 'apartment', label: 'Apartment', icon: '🏢' },
@@ -25,6 +67,92 @@ export default function AddListingScreen({ navigation }) {
     { id: 'villa', label: 'Villa', icon: '🏡' },
     { id: 'cabin', label: 'Cabin', icon: '🏔️' },
   ];
+
+  const amenitiesList = [
+    { id: 'wifi', label: 'WiFi', icon: '📶' },
+    { id: 'parking', label: 'Parking', icon: '🅿️' },
+    { id: 'pool', label: 'Pool', icon: '🏊' },
+    { id: 'kitchen', label: 'Kitchen', icon: '🍳' },
+    { id: 'ac', label: 'AC', icon: '❄️' },
+    { id: 'heating', label: 'Heating', icon: '🔥' },
+    { id: 'washer', label: 'Washer', icon: '🧺' },
+    { id: 'tv', label: 'TV', icon: '📺' },
+  ];
+
+  const toggleAmenity = (amenityId) => {
+    if (selectedAmenities.includes(amenityId)) {
+      setSelectedAmenities(selectedAmenities.filter(id => id !== amenityId));
+    } else {
+      setSelectedAmenities([...selectedAmenities, amenityId]);
+    }
+  };
+
+  const handleMapPress = async (event) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setSelectedLocation({ latitude, longitude });
+    
+    // Reverse geocoding - get address from coordinates
+    try {
+      const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (result && result.length > 0) {
+        const location = result[0];
+        // Build address string from components
+        const addressParts = [
+          location.street,
+          location.streetNumber,
+          location.city,
+          location.region,
+          location.country,
+          location.postalCode,
+        ].filter(Boolean); // Remove null/undefined values
+        
+        const fullAddress = addressParts.join(', ');
+        setAddress(fullAddress);
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      // Don't show error to user, just log it
+    }
+  };
+
+  // Geocoding - convert address to coordinates
+  const searchAddress = async () => {
+    if (!address || address.trim().length < 3) {
+      Alert.alert('Error', 'Please enter a valid address');
+      return;
+    }
+
+    setGeocoding(true);
+    try {
+      const result = await Location.geocodeAsync(address);
+      if (result && result.length > 0) {
+        const { latitude, longitude } = result[0];
+        setSelectedLocation({ latitude, longitude });
+        
+        // Animate map to new location if map is visible
+        if (showMap && mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        } else {
+          // If map is not visible, show it
+          setShowMap(true);
+        }
+        
+        Alert.alert('Success', 'Location found on map!');
+      } else {
+        Alert.alert('Not Found', 'Could not find this address. Please try a different one.');
+      }
+    } catch (error) {
+      console.error('Error geocoding:', error);
+      Alert.alert('Error', 'Could not search for this address. Please try again.');
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -102,8 +230,8 @@ export default function AddListingScreen({ navigation }) {
     );
   };
 
-  const handleSubmit = () => {
-    if (!title || !description || !price || !location) {
+  const handleSubmit = async () => {
+    if (!title || !description || !price || !address) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -113,11 +241,60 @@ export default function AddListingScreen({ navigation }) {
       return;
     }
 
-    Alert.alert(
-      'Success',
-      'Your listing will be created once backend is ready!',
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
-    );
+    if (!selectedLocation) {
+      Alert.alert('Error', 'Please select a location on the map');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Convert images to base64 (for simplicity, in production use cloud storage)
+      const base64Images = images.map(uri => uri);
+
+      const listingData = {
+        title,
+        description,
+        monthlyRent: parseFloat(price),
+        propertyType,
+        location: {
+          address,
+          coordinates: {
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+          },
+        },
+        images: base64Images,
+        amenities: selectedAmenities,
+      };
+
+      await api.createListing(listingData);
+
+      Alert.alert(
+        'Success',
+        'Your listing has been created successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reset form
+              setTitle('');
+              setDescription('');
+              setPrice('');
+              setAddress('');
+              setImages([]);
+              setSelectedAmenities([]);
+              setPropertyType('apartment');
+              navigation.navigate('Explore');
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', error.toString());
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -186,16 +363,102 @@ export default function AddListingScreen({ navigation }) {
 
         {/* Location */}
         <View style={styles.section}>
-          <Text style={styles.label}>Location</Text>
-          <View style={styles.inputWithIcon}>
-            <Text style={styles.inputIcon}>📍</Text>
-            <TextInput
-              style={[styles.input, styles.inputWithIconText]}
-              placeholder="City, Country"
-              value={location}
-              onChangeText={setLocation}
-            />
+          <Text style={styles.label}>Address</Text>
+          <View style={styles.addressContainer}>
+            <View style={styles.inputWithIcon}>
+              <Text style={styles.inputIcon}>📍</Text>
+              <TextInput
+                style={[styles.input, styles.inputWithIconText]}
+                placeholder="Full address (e.g., 123 Main St, City, Country)"
+                value={address}
+                onChangeText={setAddress}
+                multiline
+                returnKeyType="search"
+                onSubmitEditing={searchAddress}
+              />
+            </View>
+            <TouchableOpacity 
+              style={styles.searchButton}
+              onPress={searchAddress}
+              disabled={geocoding || !address}
+            >
+              {geocoding ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="search" size={20} color="#fff" />
+              )}
+            </TouchableOpacity>
           </View>
+          <Text style={styles.addressHint}>
+            💡 Type an address and tap search to find it on the map
+          </Text>
+        </View>
+
+        {/* Map Location Picker */}
+        <View style={styles.section}>
+          <View style={styles.mapHeader}>
+            <Text style={styles.label}>Pin Location on Map</Text>
+            <TouchableOpacity onPress={() => setShowMap(!showMap)}>
+              <Ionicons 
+                name={showMap ? 'chevron-up' : 'chevron-down'} 
+                size={24} 
+                color="#007AFF" 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {showMap && (
+            <View style={styles.mapContainer}>
+              {locationLoading ? (
+                <View style={styles.mapLoading}>
+                  <ActivityIndicator size="large" color="#007AFF" />
+                  <Text style={styles.mapLoadingText}>Loading map...</Text>
+                </View>
+              ) : currentLocation ? (
+                <>
+                  <MapView
+                    ref={mapRef}
+                    style={styles.map}
+                    initialRegion={{
+                      latitude: currentLocation.latitude,
+                      longitude: currentLocation.longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    }}
+                    onPress={handleMapPress}
+                  >
+                    {selectedLocation && (
+                      <Marker
+                        coordinate={selectedLocation}
+                        title="Property Location"
+                        pinColor="#007AFF"
+                      />
+                    )}
+                  </MapView>
+                  <View style={styles.mapHintContainer}>
+                    <Ionicons name="information-circle" size={16} color="#007AFF" />
+                    <Text style={styles.mapHint}>
+                      Tap on map to pin location - address will auto-fill above
+                    </Text>
+                  </View>
+                  {selectedLocation && (
+                    <View style={styles.coordinatesInfo}>
+                      <Ionicons name="location" size={14} color="#007AFF" />
+                      <Text style={styles.coordinatesText}>
+                        Lat: {selectedLocation.latitude.toFixed(6)}, Lng: {selectedLocation.longitude.toFixed(6)}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.mapError}>
+                  <Text style={styles.mapErrorText}>
+                    Unable to load map. Please check location permissions.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Price */}
@@ -214,26 +477,30 @@ export default function AddListingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Amenities (Placeholder) */}
+        {/* Amenities */}
         <View style={styles.section}>
-          <Text style={styles.label}>Amenities</Text>
+          <Text style={styles.label}>Amenities ({selectedAmenities.length} selected)</Text>
           <View style={styles.amenitiesGrid}>
-            <TouchableOpacity style={styles.amenityChip}>
-              <Text style={styles.amenityIcon}>📶</Text>
-              <Text style={styles.amenityText}>WiFi</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.amenityChip}>
-              <Text style={styles.amenityIcon}>🅿️</Text>
-              <Text style={styles.amenityText}>Parking</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.amenityChip}>
-              <Text style={styles.amenityIcon}>🏊</Text>
-              <Text style={styles.amenityText}>Pool</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.amenityChip}>
-              <Text style={styles.amenityIcon}>🍳</Text>
-              <Text style={styles.amenityText}>Kitchen</Text>
-            </TouchableOpacity>
+            {amenitiesList.map((amenity) => (
+              <TouchableOpacity
+                key={amenity.id}
+                style={[
+                  styles.amenityChip,
+                  selectedAmenities.includes(amenity.id) && styles.amenityChipSelected,
+                ]}
+                onPress={() => toggleAmenity(amenity.id)}
+              >
+                <Text style={styles.amenityIcon}>{amenity.icon}</Text>
+                <Text
+                  style={[
+                    styles.amenityText,
+                    selectedAmenities.includes(amenity.id) && styles.amenityTextSelected,
+                  ]}
+                >
+                  {amenity.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -274,8 +541,16 @@ export default function AddListingScreen({ navigation }) {
         </View>
 
         {/* Submit Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Create Listing</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitButtonText}>Create Listing</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.bottomPadding} />
@@ -363,7 +638,13 @@ const styles = StyleSheet.create({
     height: 100,
     paddingTop: 15,
   },
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
   inputWithIcon: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
@@ -386,6 +667,21 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '600',
   },
+  searchButton: {
+    backgroundColor: '#007AFF',
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 0,
+  },
+  addressHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
   amenitiesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -402,6 +698,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
+  amenityChipSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
   amenityIcon: {
     fontSize: 18,
     marginRight: 6,
@@ -409,6 +709,71 @@ const styles = StyleSheet.create({
   amenityText: {
     fontSize: 14,
     color: '#333',
+  },
+  amenityTextSelected: {
+    color: '#fff',
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  mapContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+  },
+  map: {
+    width: '100%',
+    height: 250,
+  },
+  mapLoading: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapLoadingText: {
+    marginTop: 10,
+    color: '#666',
+  },
+  mapError: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  mapErrorText: {
+    color: '#ff3b30',
+    textAlign: 'center',
+  },
+  mapHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    backgroundColor: '#f0f8ff',
+    gap: 6,
+  },
+  mapHint: {
+    fontSize: 12,
+    color: '#007AFF',
+    textAlign: 'center',
+  },
+  coordinatesInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 6,
+  },
+  coordinatesText: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
   },
   imageGrid: {
     flexDirection: 'row',
@@ -478,6 +843,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#ccc',
+    shadowOpacity: 0,
   },
   submitButtonText: {
     color: '#fff',
