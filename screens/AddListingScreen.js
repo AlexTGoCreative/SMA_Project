@@ -7,7 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function AddListingScreen({ navigation }) {
   const [title, setTitle] = useState('');
@@ -15,6 +17,7 @@ export default function AddListingScreen({ navigation }) {
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('');
   const [propertyType, setPropertyType] = useState('apartment');
+  const [images, setImages] = useState([]);
 
   const propertyTypes = [
     { id: 'apartment', label: 'Apartment', icon: '🏢' },
@@ -23,9 +26,92 @@ export default function AddListingScreen({ navigation }) {
     { id: 'cabin', label: 'Cabin', icon: '🏔️' },
   ];
 
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Camera permission is required to take photos');
+      return false;
+    }
+    return true;
+  };
+
+  const requestGalleryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Gallery permission is required to select photos');
+      return false;
+    }
+    return true;
+  };
+
+  const takePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImages([...images, result.assets[0].uri]);
+    }
+  };
+
+  const pickImage = async () => {
+    const hasPermission = await requestGalleryPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+      allowsMultipleSelection: true,
+    });
+
+    if (!result.canceled) {
+      const newImages = result.assets.map(asset => asset.uri);
+      setImages([...images, ...newImages]);
+    }
+  };
+
+  const removeImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+  };
+
+  const showImageOptions = () => {
+    Alert.alert(
+      'Add Photos',
+      'Choose an option',
+      [
+        {
+          text: 'Take Photo',
+          onPress: takePhoto,
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: pickImage,
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   const handleSubmit = () => {
     if (!title || !description || !price || !location) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (images.length === 0) {
+      Alert.alert('Error', 'Please add at least one photo');
       return;
     }
 
@@ -153,14 +239,38 @@ export default function AddListingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Photos (Placeholder) */}
+        {/* Photos */}
         <View style={styles.section}>
-          <Text style={styles.label}>Photos</Text>
-          <TouchableOpacity style={styles.photoUpload}>
+          <Text style={styles.label}>Photos ({images.length})</Text>
+          
+          {/* Image Grid */}
+          {images.length > 0 && (
+            <View style={styles.imageGrid}>
+              {images.map((uri, index) => (
+                <View key={index} style={styles.imageContainer}>
+                  <Image source={{ uri }} style={styles.imagePreview} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => removeImage(index)}
+                  >
+                    <Text style={styles.removeImageText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Add Photo Button */}
+          <TouchableOpacity 
+            style={styles.photoUpload}
+            onPress={showImageOptions}
+          >
             <Text style={styles.photoUploadIcon}>📷</Text>
-            <Text style={styles.photoUploadText}>Add Photos</Text>
+            <Text style={styles.photoUploadText}>
+              {images.length === 0 ? 'Add Photos' : 'Add More Photos'}
+            </Text>
             <Text style={styles.photoUploadSubtext}>
-              (Camera integration coming soon)
+              Take a photo or choose from gallery
             </Text>
           </TouchableOpacity>
         </View>
@@ -302,10 +412,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+    marginHorizontal: -5,
+  },
+  imageContainer: {
+    width: '31%',
+    aspectRatio: 1,
+    margin: '1%',
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeImageText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   photoUpload: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 40,
+    padding: 30,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#e0e0e0',
@@ -324,6 +468,7 @@ const styles = StyleSheet.create({
   photoUploadSubtext: {
     fontSize: 12,
     color: '#999',
+    textAlign: 'center',
   },
   submitButton: {
     backgroundColor: '#007AFF',
