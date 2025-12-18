@@ -1,0 +1,34 @@
+# Quick Commands Reference
+
+## Install Frontend Dependencies (Run these first!)
+cd "C:\Users\alexandru.tulbure\Documents\try"
+npx expo install @react-navigation/native @react-navigation/native-stack
+npx expo install react-native-screens react-native-safe-area-context
+npm install axios @react-native-async-storage/async-storage
+
+## Install Backend Dependencies
+cd "C:\Users\alexandru.tulbure\Documents\try\backend"
+npm install
+
+## Create .env file in backend folder
+# Copy env.example to .env:
+cd "C:\Users\alexandru.tulbure\Documents\try\backend"
+copy env.example .env
+
+## Start Backend Server (Terminal 1)
+cd "C:\Users\alexandru.tulbure\Documents\try\backend"
+node server.js
+
+## Start Expo App (Terminal 2)
+cd "C:\Users\alexandru.tulbure\Documents\try"
+npx expo start --tunnel
+
+## Find Your IP Address (to update in utils/api.js)
+ipconfig
+
+## Start MongoDB (if not running)
+net start MongoDB
+
+## Allow Node through Firewall (if needed)
+netsh advfirewall firewall add rule name="Node Server" dir=in action=allow protocol=TCP localport=3000
+
