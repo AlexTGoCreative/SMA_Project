@@ -5,6 +5,8 @@ cd "C:\Users\alexandru.tulbure\Documents\try"
 npx expo install @react-navigation/native @react-navigation/native-stack
 npx expo install react-native-screens react-native-safe-area-context
 npm install axios @react-native-async-storage/async-storage
+npm install @react-navigation/bottom-tabs
+
 
 ## Install Backend Dependencies
 cd "C:\Users\alexandru.tulbure\Documents\try\backend"
