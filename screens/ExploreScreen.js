@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../utils/api';
 
 export default function ExploreScreen({ navigation }) {
@@ -48,7 +49,12 @@ export default function ExploreScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Explore</Text>
+      </View>
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
@@ -113,8 +119,7 @@ export default function ExploreScreen({ navigation }) {
                   key={listing._id}
                   style={styles.listingCard}
                   onPress={() => {
-                    // TODO: Navigate to listing details
-                    console.log('Listing clicked:', listing._id);
+                    navigation.navigate('ListingDetail', { listingId: listing._id });
                   }}
                 >
                   {/* Image */}
@@ -182,14 +187,26 @@ export default function ExploreScreen({ navigation }) {
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+  },
+  header: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
   },
   searchContainer: {
     padding: 15,

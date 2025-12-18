@@ -10,6 +10,8 @@ export const api = {
   register: async (name, email, password) => {
     try {
       console.log('Attempting registration to:', `${API_URL}/register`);
+      console.log('Registration data:', { name, email, password: '***' });
+      
       const response = await axios.post(`${API_URL}/register`, {
         name,
         email,
@@ -26,15 +28,25 @@ export const api = {
       return response.data;
     } catch (error) {
       console.error('Registration error:', error.message);
-      console.error('Error details:', error.response?.data || error);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response data:', error.response?.data);
+      console.error('Full error:', error);
       
       if (error.code === 'ECONNABORTED') {
         throw 'Connection timeout. Make sure backend server is running.';
       }
       if (error.message === 'Network Error') {
-        throw 'Cannot connect to server. Check if backend is running on http://192.168.255.48:3000';
+        throw 'Cannot connect to server. Check if backend is running.';
       }
-      throw error.response?.data?.error || error.message || 'Registration failed';
+      
+      // Return more specific error message
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.details || 
+                          error.message || 
+                          'Registration failed';
+      
+      console.error('Throwing error:', errorMessage);
+      throw errorMessage;
     }
   },
 
@@ -196,6 +208,99 @@ export const api = {
     } catch (error) {
       console.error('Delete listing error:', error.message);
       throw error.response?.data?.error || 'Failed to delete listing';
+    }
+  },
+
+  // ===== BID API METHODS =====
+
+  // Create a new bid
+  createBid: async (bidData) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('Creating bid:', bidData);
+      
+      const response = await axios.post(`${API_URL}/bids`, bidData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('Bid created successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Create bid error:', error.message);
+      console.error('Error details:', error.response?.data || error);
+      throw error.response?.data?.error || 'Failed to create bid';
+    }
+  },
+
+  // Get bids for a listing (only for listing owner)
+  getListingBids: async (listingId) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/listings/${listingId}/bids`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data.bids;
+    } catch (error) {
+      console.error('Get listing bids error:', error.message);
+      throw error.response?.data?.error || 'Failed to fetch bids';
+    }
+  },
+
+  // Get user's own bids
+  getMyBids: async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/my-bids`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data.bids;
+    } catch (error) {
+      console.error('Get my bids error:', error.message);
+      throw error.response?.data?.error || 'Failed to fetch your bids';
+    }
+  },
+
+  // Update bid status (only for listing owner)
+  updateBidStatus: async (bidId, status) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.put(
+        `${API_URL}/bids/${bidId}`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Update bid status error:', error.message);
+      throw error.response?.data?.error || 'Failed to update bid';
+    }
+  },
+
+  // Withdraw bid (only for bidder)
+  withdrawBid: async (bidId) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.delete(`${API_URL}/bids/${bidId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Withdraw bid error:', error.message);
+      throw error.response?.data?.error || 'Failed to withdraw bid';
     }
   },
 };

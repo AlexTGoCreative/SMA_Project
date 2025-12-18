@@ -20,6 +20,8 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
 import MyBidsScreen from '../screens/MyBidsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ListingDetailScreen from '../screens/ListingDetailScreen';
+import ListingBidsScreen from '../screens/ListingBidsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -34,6 +36,42 @@ const AuthStack = () => {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
+  );
+};
+
+// Explore Stack Navigator (for listing details)
+const ExploreStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="ExploreMain" 
+        component={ExploreScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="ListingDetail" 
+        component={ListingDetailScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+// Map Stack Navigator (for listing details from map)
+const MapStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="MapMain" 
+        component={MapScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="ListingDetail" 
+        component={ListingDetailScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 };
@@ -55,7 +93,12 @@ const ProfileStack = () => {
       <Stack.Screen 
         name="MyListings" 
         component={MyListingsScreen}
-        options={{ title: 'My Listings' }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="ListingBids" 
+        component={ListingBidsScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="MyBids" 
@@ -66,6 +109,11 @@ const ProfileStack = () => {
         name="Settings" 
         component={SettingsScreen}
         options={{ title: 'Settings' }}
+      />
+      <Stack.Screen 
+        name="ListingDetail" 
+        component={ListingDetailScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -93,18 +141,18 @@ const MainTabs = () => {
         },
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: 'gray',
-        headerShown: true,
+        headerShown: false,
       })}
     >
       <Tab.Screen 
         name="Explore" 
-        component={ExploreScreen}
-        options={{ title: 'Explore' }}
+        component={ExploreStack}
+        options={{ title: 'Explore', headerShown: false }}
       />
       <Tab.Screen 
         name="Map" 
-        component={MapScreen}
-        options={{ title: 'Map' }}
+        component={MapStack}
+        options={{ title: 'Map', headerShown: false }}
       />
       <Tab.Screen 
         name="AddListing" 

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -120,7 +121,12 @@ export default function MapScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Map</Text>
+      </View>
+
       <MapView
         style={styles.map}
         provider={PROVIDER_GOOGLE}
@@ -130,6 +136,10 @@ export default function MapScreen({ navigation }) {
         showsMyLocationButton={false}
         showsCompass={true}
         showsScale={true}
+        scrollEnabled={true}
+        zoomEnabled={true}
+        pitchEnabled={false}
+        rotateEnabled={false}
       >
         {/* Listings markers */}
         {listings.map((listing) => (
@@ -147,8 +157,7 @@ export default function MapScreen({ navigation }) {
             <Callout
               tooltip
               onPress={() => {
-                // TODO: Navigate to listing details
-                console.log('View listing:', listing._id);
+                navigation.navigate('ListingDetail', { listingId: listing._id });
               }}
             >
               <View style={styles.calloutContainer}>
@@ -224,26 +233,39 @@ export default function MapScreen({ navigation }) {
       </View>
 
       {/* Info Card */}
-      <View style={styles.infoCard}>
-        <View style={styles.infoCardHeader}>
-          <Ionicons name="home" size={20} color="#007AFF" />
-          <Text style={styles.infoText}>
-            {listings.length} {listings.length === 1 ? 'Property' : 'Properties'} Available
+      {listings.length > 0 && (
+        <View style={styles.infoCard}>
+          <View style={styles.infoCardHeader}>
+            <Ionicons name="home" size={20} color="#007AFF" />
+            <Text style={styles.infoText}>
+              {listings.length} {listings.length === 1 ? 'Property' : 'Properties'} Available
+            </Text>
+          </View>
+          <Text style={styles.infoSubtext}>
+            Tap a marker to see details
           </Text>
         </View>
-        {listings.length === 0 && (
-          <Text style={styles.infoSubtext}>
-            No listings to show on the map yet
-          </Text>
-        )}
-      </View>
-    </View>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
   },
   map: {
     flex: 1,

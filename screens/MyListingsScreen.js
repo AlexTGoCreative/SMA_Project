@@ -181,6 +181,21 @@ export default function MyListingsScreen({ navigation }) {
                     {/* Actions */}
                     <View style={styles.actionsRow}>
                       <TouchableOpacity
+                        style={[styles.actionButton, styles.viewBidsButton]}
+                        onPress={() => {
+                          navigation.navigate('ListingBids', {
+                            listingId: listing._id,
+                            listingTitle: listing.title,
+                          });
+                        }}
+                      >
+                        <Ionicons name="mail-outline" size={20} color="#fff" />
+                        <Text style={[styles.actionButtonText, styles.viewBidsButtonText]}>
+                          View Bids
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => {
                           // TODO: Navigate to edit screen
@@ -450,6 +465,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#f0f8ff',
     marginHorizontal: 5,
+  },
+  viewBidsButton: {
+    backgroundColor: '#007AFF',
+  },
+  viewBidsButtonText: {
+    color: '#fff',
   },
   actionButtonText: {
     fontSize: 14,

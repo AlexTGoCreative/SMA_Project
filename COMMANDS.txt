@@ -8,6 +8,7 @@ npm install axios @react-native-async-storage/async-storage
 npm install @react-navigation/bottom-tabs
 npx expo install expo-image-picker
 npx expo install expo-location react-native-maps
+npx expo install react-native-safe-area-context
 
 
 ## Install Backend Dependencies
@@ -36,8 +37,14 @@ net start MongoDB
 ## Allow Node through Firewall (if needed)
 netsh advfirewall firewall add rule name="Node Server" dir=in action=allow protocol=TCP localport=3000
 
-## 🗺️ NEW FEATURES - Geocoding & Reverse Geocoding
+## 🗺️ FEATURES - Geocoding & Reverse Geocoding
 # ✅ Type address → Search button → Map moves to location
 # ✅ Tap on map → Address auto-fills
-# See GEOCODING_FEATURE.md for full details!
+
+## 💰 NEW FEATURES - Listing Details & Bidding System
+# ✅ View full listing details with image gallery
+# ✅ Make offers on properties
+# ✅ Track your bids in My Bids
+# ✅ Withdraw pending bids
+# See BIDDING_SYSTEM.md for full details!
 

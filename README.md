@@ -1,8 +1,8 @@
-# 📱 Expo Authentication App
+# 🏠 Property Rental & Bidding App
 
-A full-stack mobile authentication application built with React Native (Expo) and Node.js, featuring a beautiful UI and cloud-deployed backend.
+A full-stack mobile application for renting properties with an integrated bidding system. Built with React Native (Expo), Node.js, and MongoDB.
 
-![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-success)
+![Status](https://img.shields.io/badge/Status-Bidding%20System%20Complete-success)
 ![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android-blue)
 ![Backend](https://img.shields.io/badge/Backend-Live-success)
 
@@ -10,13 +10,30 @@ A full-stack mobile authentication application built with React Native (Expo) an
 
 ## ✨ Features
 
+### Authentication & User Management
 - 🔐 **Secure Authentication** - JWT-based login and registration
-- 👤 **User Dashboard** - Beautiful profile dashboard with statistics
+- 👤 **User Profiles** - Manage your account and preferences
 - 💾 **Persistent Login** - Stay logged in across app restarts
-- 🎨 **Modern UI** - Clean, iOS-style interface
+
+### Property Listings
+- 🏡 **Add Listings** - Post properties with photos and details
+- 📸 **Image Upload** - Camera & gallery integration
+- 🗺️ **Location Picker** - Interactive map with geocoding
+- 🔍 **Search & Filter** - Find properties easily
+- 📍 **Map View** - See all properties on a map
+
+### Bidding System
+- 💰 **Make Offers** - Bid on properties (min. 60% of asking price)
+- 📊 **Track Bids** - Monitor all your offers
+- ✅ **Accept/Reject** - Owners manage received bids
+- 💬 **Messages** - Add notes with your bids
+- 🔔 **Status Updates** - Real-time bid status tracking
+
+### Technical
 - ☁️ **Cloud Backend** - Deployed on Render.com
 - 🗄️ **MongoDB Atlas** - Cloud database
 - 📱 **Expo Go Compatible** - Test instantly on your phone
+- 🎨 **Modern UI** - Clean, iOS-style interface
 
 ---
 
