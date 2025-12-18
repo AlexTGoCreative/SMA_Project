@@ -23,7 +23,7 @@ export default function AddListingScreen({ navigation }) {
   const [address, setAddress] = useState('');
   const [propertyType, setPropertyType] = useState('apartment');
   const [images, setImages] = useState([]);
-  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [selectedFacilities, setSelectedFacilities] = useState([]);
   const [loading, setLoading] = useState(false);
   
   // Location state
@@ -68,22 +68,54 @@ export default function AddListingScreen({ navigation }) {
     { id: 'cabin', label: 'Cabin', icon: '🏔️' },
   ];
 
-  const amenitiesList = [
-    { id: 'wifi', label: 'WiFi', icon: '📶' },
-    { id: 'parking', label: 'Parking', icon: '🅿️' },
-    { id: 'pool', label: 'Pool', icon: '🏊' },
+  const facilitiesList = [
+    // Internet & Entertainment
+    { id: 'wifi', label: 'Free WiFi', icon: '📶' },
+    { id: 'tv', label: 'Flat-screen TV', icon: '📺' },
+    { id: 'streaming', label: 'Streaming service', icon: '🎬' },
+    
+    // Kitchen & Dining
     { id: 'kitchen', label: 'Kitchen', icon: '🍳' },
-    { id: 'ac', label: 'AC', icon: '❄️' },
+    { id: 'dishwasher', label: 'Dishwasher', icon: '🍽️' },
+    { id: 'microwave', label: 'Microwave', icon: '📻' },
+    { id: 'coffee', label: 'Coffee maker', icon: '☕' },
+    
+    // Bathroom
+    { id: 'washer', label: 'Washing machine', icon: '🧺' },
+    { id: 'dryer', label: 'Dryer', icon: '👕' },
+    { id: 'hairdryer', label: 'Hair dryer', icon: '💨' },
+    { id: 'towels', label: 'Towels', icon: '🛁' },
+    
+    // Comfort
+    { id: 'ac', label: 'Air conditioning', icon: '❄️' },
     { id: 'heating', label: 'Heating', icon: '🔥' },
-    { id: 'washer', label: 'Washer', icon: '🧺' },
-    { id: 'tv', label: 'TV', icon: '📺' },
+    { id: 'balcony', label: 'Balcony', icon: '🪴' },
+    { id: 'terrace', label: 'Terrace', icon: '🌿' },
+    
+    // Outdoor & Parking
+    { id: 'parking', label: 'Free parking', icon: '🅿️' },
+    { id: 'garden', label: 'Garden', icon: '🌳' },
+    { id: 'pool', label: 'Swimming pool', icon: '🏊' },
+    { id: 'bbq', label: 'BBQ facilities', icon: '🍖' },
+    
+    // Safety & Security
+    { id: 'security', label: '24-hour security', icon: '🔒' },
+    { id: 'smoke_alarm', label: 'Smoke alarm', icon: '🚨' },
+    { id: 'first_aid', label: 'First aid kit', icon: '🏥' },
+    
+    // Accessibility
+    { id: 'elevator', label: 'Elevator', icon: '🛗' },
+    { id: 'wheelchair', label: 'Wheelchair accessible', icon: '♿' },
+    
+    // Pet-friendly
+    { id: 'pets', label: 'Pets allowed', icon: '🐕' },
   ];
 
-  const toggleAmenity = (amenityId) => {
-    if (selectedAmenities.includes(amenityId)) {
-      setSelectedAmenities(selectedAmenities.filter(id => id !== amenityId));
+  const toggleFacility = (facilityId) => {
+    if (selectedFacilities.includes(facilityId)) {
+      setSelectedFacilities(selectedFacilities.filter(id => id !== facilityId));
     } else {
-      setSelectedAmenities([...selectedAmenities, amenityId]);
+      setSelectedFacilities([...selectedFacilities, facilityId]);
     }
   };
 
@@ -265,7 +297,7 @@ export default function AddListingScreen({ navigation }) {
           },
         },
         images: base64Images,
-        amenities: selectedAmenities,
+        amenities: selectedFacilities,
       };
 
       await api.createListing(listingData);
@@ -283,7 +315,7 @@ export default function AddListingScreen({ navigation }) {
               setPrice('');
               setAddress('');
               setImages([]);
-              setSelectedAmenities([]);
+              setSelectedFacilities([]);
               setPropertyType('apartment');
               navigation.navigate('Explore');
             },
@@ -298,7 +330,7 @@ export default function AddListingScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -477,27 +509,28 @@ export default function AddListingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Amenities */}
+        {/* Facilities */}
         <View style={styles.section}>
-          <Text style={styles.label}>Amenities ({selectedAmenities.length} selected)</Text>
+          <Text style={styles.label}>Facilities ({selectedFacilities.length} selected)</Text>
+          <Text style={styles.sublabel}>Select all that apply</Text>
           <View style={styles.amenitiesGrid}>
-            {amenitiesList.map((amenity) => (
+            {facilitiesList.map((facility) => (
               <TouchableOpacity
-                key={amenity.id}
+                key={facility.id}
                 style={[
                   styles.amenityChip,
-                  selectedAmenities.includes(amenity.id) && styles.amenityChipSelected,
+                  selectedFacilities.includes(facility.id) && styles.amenityChipSelected,
                 ]}
-                onPress={() => toggleAmenity(amenity.id)}
+                onPress={() => toggleFacility(facility.id)}
               >
-                <Text style={styles.amenityIcon}>{amenity.icon}</Text>
+                <Text style={styles.amenityIcon}>{facility.icon}</Text>
                 <Text
                   style={[
                     styles.amenityText,
-                    selectedAmenities.includes(amenity.id) && styles.amenityTextSelected,
+                    selectedFacilities.includes(facility.id) && styles.amenityTextSelected,
                   ]}
                 >
-                  {amenity.label}
+                  {facility.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -564,6 +597,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  scrollContent: {
+    paddingTop: 50,
+  },
   content: {
     padding: 20,
   },
@@ -593,6 +629,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 10,
+  },
+  sublabel: {
+    fontSize: 13,
+    color: '#999',
+    marginBottom: 15,
+    marginTop: -5,
   },
   typeGrid: {
     flexDirection: 'row',

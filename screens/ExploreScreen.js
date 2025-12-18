@@ -9,8 +9,12 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  Keyboard,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 
 export default function ExploreScreen({ navigation }) {
@@ -19,10 +23,30 @@ export default function ExploreScreen({ navigation }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [searchRadius, setSearchRadius] = useState(10); // km
+  const [searchLocation, setSearchLocation] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     fetchListings();
+    getUserLocation();
   }, []);
+
+  const getUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      }
+    } catch (error) {
+      console.log('Error getting user location:', error);
+    }
+  };
 
   const fetchListings = async () => {
     try {
@@ -43,10 +67,111 @@ export default function ExploreScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const filteredListings = listings.filter((listing) =>
-    listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    listing.location.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
+
+  const handleSearch = async () => {
+    Keyboard.dismiss();
+    
+    if (!searchQuery.trim()) {
+      // If empty search, reset and show all listings
+      setSearchLocation(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      // Try to geocode the search query
+      const geocoded = await Location.geocodeAsync(searchQuery);
+      
+      if (geocoded && geocoded.length > 0) {
+        const newSearchLocation = {
+          latitude: geocoded[0].latitude,
+          longitude: geocoded[0].longitude,
+        };
+
+        setSearchLocation(newSearchLocation);
+
+        // Filter listings by proximity
+        const nearby = listings.filter(listing => {
+          if (!listing.location?.coordinates) return false;
+          
+          const distance = calculateDistance(
+            newSearchLocation.latitude,
+            newSearchLocation.longitude,
+            listing.location.coordinates.latitude,
+            listing.location.coordinates.longitude
+          );
+          
+          return distance <= searchRadius;
+        });
+
+        if (nearby.length === 0) {
+          Alert.alert(
+            'No Results',
+            `No properties found within ${searchRadius}km of "${searchQuery}". Try increasing the search radius or a different location.`,
+            [
+              { text: 'OK' },
+              { 
+                text: 'Search 20km', 
+                onPress: () => {
+                  setSearchRadius(20);
+                  setTimeout(() => handleSearch(), 100);
+                }
+              }
+            ]
+          );
+        } else {
+          Alert.alert('Search Results', `Found ${nearby.length} ${nearby.length === 1 ? 'property' : 'properties'} near "${searchQuery}"`);
+        }
+      } else {
+        // Fallback to text search
+        setSearchLocation(null);
+        Alert.alert('Info', 'Location not found. Searching by property name and address instead.');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchLocation(null);
+      Alert.alert('Error', 'Could not search location. Showing text-based results.');
+    }
+  };
+
+  const filteredListings = listings.filter((listing) => {
+    // If we have a search location (proximity search)
+    if (searchLocation && isSearching) {
+      if (!listing.location?.coordinates) return false;
+      
+      const distance = calculateDistance(
+        searchLocation.latitude,
+        searchLocation.longitude,
+        listing.location.coordinates.latitude,
+        listing.location.coordinates.longitude
+      );
+      
+      return distance <= searchRadius;
+    }
+    
+    // Text-based search fallback
+    if (!searchQuery.trim()) return true;
+    
+    const matchesText = 
+      listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      listing.location.address.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesText;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -58,15 +183,64 @@ export default function ExploreScreen({ navigation }) {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="location-outline" size={20} color="#007AFF" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for homes..."
+            placeholder="Search by location (e.g., New York, London)..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            returnKeyType="search"
+            onSubmitEditing={handleSearch}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => {
+                setSearchQuery('');
+                setSearchLocation(null);
+                setIsSearching(false);
+                Keyboard.dismiss();
+              }}
+              style={styles.clearButton}
+            >
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
         </View>
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={handleSearch}
+        >
+          <Ionicons name="search" size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
+
+      {/* Search Info */}
+      {userLocation && (
+        <View style={styles.searchInfo}>
+          <Ionicons name="information-circle-outline" size={16} color="#666" />
+          <Text style={styles.searchInfoText}>
+            Searching within {searchRadius}km radius
+          </Text>
+          <TouchableOpacity 
+            onPress={() => {
+              Alert.alert(
+                'Search Radius',
+                'Choose search radius:',
+                [
+                  { text: '5 km', onPress: () => setSearchRadius(5) },
+                  { text: '10 km', onPress: () => setSearchRadius(10) },
+                  { text: '20 km', onPress: () => setSearchRadius(20) },
+                  { text: '50 km', onPress: () => setSearchRadius(50) },
+                  { text: 'Cancel', style: 'cancel' }
+                ]
+              );
+            }}
+            style={styles.changeRadiusButton}
+          >
+            <Text style={styles.changeRadiusText}>Change</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Listings */}
       {loading ? (
@@ -209,26 +383,61 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   searchContainer: {
+    flexDirection: 'row',
     padding: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    gap: 10,
   },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
     borderRadius: 10,
     paddingHorizontal: 15,
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 10,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: 14,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  searchButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f8ff',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#666',
+  },
+  changeRadiusButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#007AFF',
+    borderRadius: 6,
+  },
+  changeRadiusText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
   },
   listingsContainer: {
     flex: 1,

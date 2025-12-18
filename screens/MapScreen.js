@@ -121,12 +121,7 @@ export default function MapScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Map</Text>
-      </View>
-
+    <SafeAreaView style={styles.container} edges={['top']}>
       <MapView
         style={styles.map}
         provider={PROVIDER_GOOGLE}
@@ -232,20 +227,6 @@ export default function MapScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Info Card */}
-      {listings.length > 0 && (
-        <View style={styles.infoCard}>
-          <View style={styles.infoCardHeader}>
-            <Ionicons name="home" size={20} color="#007AFF" />
-            <Text style={styles.infoText}>
-              {listings.length} {listings.length === 1 ? 'Property' : 'Properties'} Available
-            </Text>
-          </View>
-          <Text style={styles.infoSubtext}>
-            Tap a marker to see details
-          </Text>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -253,19 +234,6 @@ export default function MapScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   map: {
     flex: 1,
