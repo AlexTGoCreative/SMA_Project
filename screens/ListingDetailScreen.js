@@ -15,9 +15,10 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -135,6 +136,31 @@ export default function ListingDetailScreen({ route, navigation }) {
     );
   };
 
+  const handleCallOwner = () => {
+    const phoneNumber = listing.phoneNumber || listing.userId?.phoneNumber;
+    
+    if (!phoneNumber) {
+      Alert.alert('No Phone Number', 'The owner has not provided a phone number.');
+      return;
+    }
+
+    Alert.alert(
+      'Call Owner',
+      `Call ${listing.userId?.name || 'the owner'} at ${phoneNumber}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call',
+          onPress: () => {
+            Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+              Alert.alert('Error', 'Unable to make phone call');
+            });
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -242,9 +268,16 @@ export default function ListingDetailScreen({ route, navigation }) {
               </View>
             </View>
             {!isOwner && (
-              <TouchableOpacity style={styles.contactButton} onPress={handleContactOwner}>
-                <Ionicons name="chatbubble-outline" size={20} color="#007AFF" />
-              </TouchableOpacity>
+              <View style={styles.contactButtons}>
+                {(listing.phoneNumber || listing.userId?.phoneNumber) && (
+                  <TouchableOpacity style={styles.contactButton} onPress={handleCallOwner}>
+                    <Ionicons name="call-outline" size={20} color="#007AFF" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.contactButton} onPress={handleContactOwner}>
+                  <Ionicons name="chatbubble-outline" size={20} color="#007AFF" />
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -272,9 +305,29 @@ export default function ListingDetailScreen({ route, navigation }) {
 
         {/* Map */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <TouchableOpacity 
+              style={styles.openMapButton}
+              onPress={() => {
+                const { latitude, longitude } = listing.location.coordinates;
+                const label = encodeURIComponent(listing.title);
+                const url = Platform.select({
+                  ios: `https://maps.google.com/?q=${latitude},${longitude}&label=${label}`,
+                  android: `https://maps.google.com/?q=${latitude},${longitude}&label=${label}`,
+                });
+                Linking.openURL(url).catch(() => {
+                  Alert.alert('Error', 'Unable to open Google Maps');
+                });
+              }}
+            >
+              <Ionicons name="navigate-outline" size={16} color="#007AFF" />
+              <Text style={styles.openMapText}>Open in Google Maps</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.mapContainer}>
             <MapView
+              provider={PROVIDER_GOOGLE}
               style={styles.map}
               initialRegion={{
                 latitude: listing.location.coordinates.latitude,
@@ -614,6 +667,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1a1a1a',
   },
+  contactButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   contactButton: {
     width: 44,
     height: 44,
@@ -632,6 +689,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 15,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  openMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f8ff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  openMapText: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   description: {
     fontSize: 16,

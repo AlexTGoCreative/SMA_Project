@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 
@@ -21,6 +21,7 @@ export default function AddListingScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [address, setAddress] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [propertyType, setPropertyType] = useState('apartment');
   const [images, setImages] = useState([]);
   const [selectedFacilities, setSelectedFacilities] = useState([]);
@@ -298,6 +299,7 @@ export default function AddListingScreen({ navigation }) {
         },
         images: base64Images,
         amenities: selectedFacilities,
+        phoneNumber: phoneNumber,
       };
 
       await api.createListing(listingData);
@@ -314,6 +316,7 @@ export default function AddListingScreen({ navigation }) {
               setDescription('');
               setPrice('');
               setAddress('');
+              setPhoneNumber('');
               setImages([]);
               setSelectedFacilities([]);
               setPropertyType('apartment');
@@ -449,6 +452,7 @@ export default function AddListingScreen({ navigation }) {
               ) : currentLocation ? (
                 <>
                   <MapView
+                    provider={PROVIDER_GOOGLE}
                     ref={mapRef}
                     style={styles.map}
                     initialRegion={{
@@ -507,6 +511,22 @@ export default function AddListingScreen({ navigation }) {
             />
             <Text style={styles.inputSuffix}>USD/month</Text>
           </View>
+        </View>
+
+        {/* Phone Number */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Contact Phone Number</Text>
+          <View style={styles.inputWithIcon}>
+            <Ionicons name="call-outline" size={20} color="#007AFF" style={{ marginRight: 10 }} />
+            <TextInput
+              style={[styles.input, styles.inputWithIconText]}
+              placeholder="e.g., +1234567890"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+            />
+          </View>
+          <Text style={styles.sublabel}>Interested renters will be able to contact you at this number</Text>
         </View>
 
         {/* Facilities */}
